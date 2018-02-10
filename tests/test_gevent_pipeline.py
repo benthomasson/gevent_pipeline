@@ -8,15 +8,29 @@ import unittest
 
 from gevent_pipeline import gevent_pipeline
 
+from gevent_pipeline.fsm import Channel, FSMController, State
 
-class TestGevent_pipeline(unittest.TestCase):
-    """Tests for `gevent_pipeline` package."""
+class TestChannel(unittest.TestCase):
 
-    def setUp(self):
-        """Set up test fixtures, if any."""
+    def test_put(self):
+        channel = Channel(None, None, None)
+        channel.put(['foo', {}])
 
-    def tearDown(self):
-        """Tear down test fixtures, if any."""
+    def test_put_get(self):
+        channel = Channel(None, None, None)
+        channel.put(['foo', {}])
+        assert channel.get(block=False)
 
-    def test_000_something(self):
-        """Test something."""
+
+class _AState(State):
+
+    pass
+
+AState = _AState()
+
+class TestFSMController(unittest.TestCase):
+
+    def test_init(self):
+        fsm = FSMController({}, 'test', AState, self)
+
+
