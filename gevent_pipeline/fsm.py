@@ -4,6 +4,7 @@ from gevent.queue import Queue
 
 from conf import settings
 import messages
+import gevent
 
 
 class _Channel(object):
@@ -32,11 +33,13 @@ def Channel(from_fsm, to_fsm, tracer):
 
 class _NullChannel(object):
 
-    def __init__(self, from_fsm, tracer):
-        self.from_fsm = from_fsm
+    def __init__(self):
+        pass
 
     def put(self, item):
         pass
+
+NullChannelSingleton = _NullChannel()
 
 
 class _NullChannelInstrumented(object):
@@ -56,7 +59,7 @@ def NullChannel(from_fsm, tracer):
     if settings.instrumented:
         return _NullChannelInstrumented(from_fsm, tracer)
     else:
-        return _NullChannel(from_fsm, tracer)
+        return NullChannelSingleton
 
 
 class FSMController(object):
@@ -69,8 +72,8 @@ class FSMController(object):
         self.state = initial_state
         self.state.start(self)
         self.handling_message_type = None
-        self.inboxes = []
-        self.delegate_channel = NullChannel(self, tracer)
+        self.inboxes = dict()
+        self.outboxes = dict(default=NullChannel(self, tracer))
 
     def changeState(self, state):
         if self.state:
@@ -106,12 +109,13 @@ class FSMController(object):
             self.handling_message_type = old_handling_message_type
 
     def default_handler(self, controller, message_type, message):
-        self.delegate_channel.put((message_type, message))
+        self.outboxes.get('default', NullChannelSingleton).put((message_type, message))
 
     def receive_messages(self):
 
         while True:
-            for inbox in self.inboxes:
+            gevent.sleep(0)
+            for inbox in self.inboxes.values():
                 message_type_and_message = inbox.get()
                 message_type = message_type_and_message.pop(0)
                 message = message_type_and_message.pop(0)
@@ -125,3 +129,10 @@ class State(object):
 
     def end(self, controller):
         pass
+
+
+def transitions(*args):
+    def decorator(fn):
+        fn.transitions = args
+        return fn
+    return decorator
