@@ -9,13 +9,19 @@ import gevent
 
 class _Channel(object):
 
-    def __init__(self, from_fsm, to_fsm, tracer):
-        self.queue = Queue()
+    def __init__(self, from_fsm, to_fsm, tracer, queue=None):
+        if queue is None:
+            self.queue = Queue()
+        else:
+            self.queue = queue
         self.from_fsm = from_fsm
         self.to_fsm = to_fsm
         self.tracer = tracer
 
     def put(self, item):
+        self.tracer.send_trace_message(messages.ChannelTrace(self.from_fsm.name,
+                                                             self.to_fsm.name,
+                                                             item.__class__.__name__))
         self.queue.put(item)
 
     def get(self, block=True, timeout=None):
@@ -24,9 +30,11 @@ class _Channel(object):
     receive = get
 
 
-def Channel(from_fsm, to_fsm, tracer):
+def Channel(from_fsm, to_fsm, tracer, queue=None):
     if settings.instrumented:
-        return _Channel(from_fsm, to_fsm, tracer)
+        return _Channel(from_fsm, to_fsm, tracer, queue)
+    if queue is not None:
+        return queue
     else:
         return Queue()
 
@@ -51,7 +59,7 @@ class _NullChannelInstrumented(object):
     def put(self, item):
         self.tracer.send_trace_message(messages.ChannelTrace(self.from_fsm.name,
                                                              None,
-                                                             item[0]))
+                                                             item.__class__.__name__))
 
 
 def NullChannel(from_fsm, tracer):
@@ -86,8 +94,8 @@ class FSMController(object):
         if settings.instrumented:
             self.tracer.send_trace_message(messages.FSMTrace(self.tracer.trace_order_seq(),
                                                              self.name,
-                                                             self.state.name,
-                                                             state.name,
+                                                             self.state.__class__.__name__,
+                                                             state.__class__.__name__,
                                                              self.handling_message_type))
         self.state = state
         if self.state:
@@ -115,11 +123,11 @@ class FSMController(object):
 
         while True:
             gevent.sleep(0)
-            if self.inboxes:
-                for inbox in self.inboxes.values():
-                    message = inbox.get()
-                    message_type = message.__class__.__name__
-                    self.handle_message(message_type, message)
+            if self.inboxes.get('default', None):
+                inbox = self.inboxes.get('default')
+                message = inbox.get()
+                message_type = message.__class__.__name__
+                self.handle_message(message_type, message)
             else:
                 break
 
