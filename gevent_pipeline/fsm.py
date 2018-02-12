@@ -109,17 +109,19 @@ class FSMController(object):
             self.handling_message_type = old_handling_message_type
 
     def default_handler(self, controller, message_type, message):
-        self.outboxes.get('default', NullChannelSingleton).put((message_type, message))
+        self.outboxes.get('default', NullChannelSingleton).put(message)
 
     def receive_messages(self):
 
         while True:
             gevent.sleep(0)
-            for inbox in self.inboxes.values():
-                message_type_and_message = inbox.get()
-                message_type = message_type_and_message.pop(0)
-                message = message_type_and_message.pop(0)
-                self.handle_message(message_type, message)
+            if self.inboxes:
+                for inbox in self.inboxes.values():
+                    message = inbox.get()
+                    message_type = message.__class__.__name__
+                    self.handle_message(message_type, message)
+            else:
+                break
 
 
 class State(object):
