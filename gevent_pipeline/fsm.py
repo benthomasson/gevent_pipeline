@@ -19,8 +19,9 @@ class _Channel(object):
         self.tracer = tracer
 
     def put(self, item):
-        self.tracer.send_trace_message(messages.ChannelTrace(self.from_fsm.name,
-                                                             self.to_fsm.name,
+        self.tracer.send_trace_message(messages.ChannelTrace(self.tracer.trace_order_seq(),
+                                                             self.from_fsm.fsm_id if self.from_fsm else None,
+                                                             self.to_fsm.fsm_id if self.to_fsm else None,
                                                              item.__class__.__name__))
         self.queue.put(item)
 
@@ -57,7 +58,8 @@ class _NullChannelInstrumented(object):
         self.tracer = tracer
 
     def put(self, item):
-        self.tracer.send_trace_message(messages.ChannelTrace(self.from_fsm.name,
+        self.tracer.send_trace_message(messages.ChannelTrace(self.tracer.trace_order_seq(),
+                                                             self.from_fsm.fsm_id,
                                                              None,
                                                              item.__class__.__name__))
 
@@ -72,16 +74,18 @@ def NullChannel(from_fsm, tracer):
 
 class FSMController(object):
 
-    def __init__(self, context, name, initial_state, tracer):
+    def __init__(self, context, name, fsm_id, initial_state, tracer, channel_tracer):
         self.context = context
         self.name = name
+        self.fsm_id = fsm_id
         self.tracer = tracer
+        self.channel_tracer = channel_tracer
         self.handling_message_type = 'start'
         self.state = initial_state
         self.state.start(self)
         self.handling_message_type = None
         self.inboxes = dict()
-        self.outboxes = dict(default=NullChannel(self, tracer))
+        self.outboxes = dict(default=NullChannel(self, channel_tracer))
 
     def changeState(self, state):
         if self.state:
@@ -94,8 +98,9 @@ class FSMController(object):
         if settings.instrumented:
             self.tracer.send_trace_message(messages.FSMTrace(self.tracer.trace_order_seq(),
                                                              self.name,
-                                                             self.state.__class__.__name__,
-                                                             state.__class__.__name__,
+                                                             self.fsm_id,
+                                                             self.state.__class__.__name__[1:],
+                                                             state.__class__.__name__[1:],
                                                              self.handling_message_type))
         self.state = state
         if self.state:
