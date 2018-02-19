@@ -5,6 +5,7 @@ from gevent.queue import Queue
 from conf import settings
 import messages
 import gevent
+from gevent.queue import Queue
 
 
 class _Channel(object):
@@ -84,7 +85,7 @@ class FSMController(object):
         self.state = initial_state
         self.state.start(self)
         self.handling_message_type = None
-        self.inboxes = dict()
+        self.inboxes = dict(default=Queue())
         self.outboxes = dict(default=NullChannel(self, channel_tracer))
 
     def changeState(self, state):
