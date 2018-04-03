@@ -152,3 +152,14 @@ def transitions(*args):
         fn.transitions = args
         return fn
     return decorator
+
+
+class _NullTracer(object):
+
+    def trace_order_seq(self):
+        return 0
+
+    def send_trace_message(self, message):
+        pass
+
+NullTracer = _NullTracer()
