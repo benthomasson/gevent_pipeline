@@ -2,10 +2,9 @@
 
 from gevent.queue import Queue
 
-from conf import settings
-import messages
+from .conf import settings
+import gevent_pipeline.messages as messages
 import gevent
-from gevent.queue import Queue
 
 
 class _Channel(object):
@@ -48,6 +47,7 @@ class _NullChannel(object):
 
     def put(self, item):
         pass
+
 
 NullChannelSingleton = _NullChannel()
 
@@ -161,5 +161,6 @@ class _NullTracer(object):
 
     def send_trace_message(self, message):
         pass
+
 
 NullTracer = _NullTracer()

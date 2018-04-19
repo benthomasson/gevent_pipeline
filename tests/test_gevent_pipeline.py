@@ -6,9 +6,8 @@
 
 import unittest
 
-from gevent_pipeline import gevent_pipeline
-
 from gevent_pipeline.fsm import Channel, FSMController, State
+
 
 class TestChannel(unittest.TestCase):
 
@@ -26,11 +25,11 @@ class _AState(State):
 
     pass
 
+
 AState = _AState()
+
 
 class TestFSMController(unittest.TestCase):
 
     def test_init(self):
-        fsm = FSMController({}, 'test', AState, self)
-
-
+        FSMController({}, 'test', AState, self)
