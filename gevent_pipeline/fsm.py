@@ -1,10 +1,10 @@
 
 
+import gevent
 from gevent.queue import Queue
 
 from .conf import settings
 import gevent_pipeline.messages as messages
-import gevent
 
 
 class _Channel(object):
